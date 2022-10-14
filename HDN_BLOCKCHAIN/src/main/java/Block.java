@@ -1,34 +1,59 @@
+import java.util.ArrayList;
 import java.util.Date;
+
 public class Block {
+
     public String hash;
     public String previousHash;
-    private String data;
-    private long timeStamp;
-    private int nonce;
-    //Phương thức khởi tạo khối
-    public Block(String data,String previousHash) {
-        this.data = data;
+    public String merkleRoot;
+    public ArrayList<Transaction> transactions = new ArrayList<Transaction>(); //Khai báo mảng chứa các giao dịch.
+    public long timeStamp;
+    public int nonce;
+
+    //Block Constructor.
+    public Block(String previousHash ) {
         this.previousHash = previousHash;
         this.timeStamp = new Date().getTime();
+
         this.hash = calculateHash();
     }
-    //Phương thức tính Hash
+
+    //Calculate new hash based on blocks contents
     public String calculateHash() {
-        String calculatehash = DigitalSignatures.applySha256(
+        String calculatedhash = StringUtil.applySha256(
                 previousHash +
                         Long.toString(timeStamp) +
                         Integer.toString(nonce) +
-                        data
+                        merkleRoot
         );
-        return calculatehash;
+        return calculatedhash;
     }
-    //Phương thức đào khối
+
+    //Increases nonce value until hash target is reached.
     public void mineBlock(int difficulty) {
-        String target = new String(new char[difficulty]).replace('\0', '0'); //Create a string with difficulty * "0"
+        merkleRoot = StringUtil.getMerkleRoot(transactions);
+        String target = StringUtil.getDificultyString(difficulty); //Khởi tạo chuỗi với độ khó  là "0"
         while(!hash.substring( 0, difficulty).equals(target)) {
             nonce ++;
             hash = calculateHash();
         }
         System.out.println("Block Mined!!! : " + hash);
     }
+
+    //Thêm giao dịch vào Block
+    public boolean addTransaction(Transaction transaction) {
+        //xử lý giao dịch và kiểm tra xem có hợp lệ không; Nếu là khối là khối gốc thì không cần kiểm tra.
+        if(transaction == null) return false;
+        if((!"0".equals(previousHash))) {
+            if((transaction.processTransaction() != true)) {
+                System.out.println("Giao dịch không xử lý được!.");
+                return false;
+            }
+        }
+
+        transactions.add(transaction);
+        System.out.println("Giao dịch đã được thêm thành công vào khối.");
+        return true;
+    }
+
 }
